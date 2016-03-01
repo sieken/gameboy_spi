@@ -5,6 +5,14 @@
 
 char transmission[3] = { 0 };
 
+void debug_receive (void) {
+  if (_io_status == IO_IDLE) {
+    printf ("Received: %c\n",_io_in);
+  } else {
+    printf ("Error: %c\n",_io_status);
+  }
+}
+
 int main (void) {
   UBYTE i = 0;
   UBYTE c = 0xAA;
@@ -17,21 +25,13 @@ int main (void) {
 
     transmission[i] = _io_in;
     i++;
-    if (i >= 2) {
+    if (i >= 3) {
       for (i = 0; i < 3; i++) {
-        printf ("%c",transmission[i]);
+        printf("%c",transmission[i]);
+        printf("\n");
       }
       i = 0;
     }
-
-    /*
-       if (_io_status == IO_IDLE) {
-       printf ("Received: %c\n",_io_in);
-       } else {
-       printf ("Error: %c\n",_io_status);
-       }
-       */
-
   }
   return 0;
 }
