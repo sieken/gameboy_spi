@@ -6,10 +6,15 @@
 #include <stdint.h>
 #include <pic32mx.h>
 
-#define SLEEP 4000000
+#define SLEEP 2000000
 
 // uint8_t message[3] = {0x53,0x4F,0x53};
-char message[3] = {'S','O','S'};
+char message[] = {
+  'S','o','c',0x0D,'l','i','s','t','e','r',' ','h','e','m',' ',0x0D,
+  'u','r',' ','h','u','s','e',' ','h','a',' ','h','a',' ',0x0D,
+  'l','o','l',',','t','r','o','d','d','e',' ','d','u',0x0D,
+  'j','a','.',' ','*','F','i','s','!',' ',' ',' ',0x0D,
+};
 uint8_t clrBuf;
 
 void spi_init (void);
@@ -48,16 +53,11 @@ int main (void) {
   while (1) {
     c = message[i];
     send (c);
+    PORTF ^= 0x1;
     sleep();
-    if ((IFS(1)&(1<<7))) {
-      if (i >= 2) {
-        i = 0;
-        PORTF ^= 0x1;
-      } else {
-        i++;
-      }
-      IFS(1) = 0;
-    }
+    i++;
+    if (i > 58)
+      i = 0;
   }
   return 0;
 }
