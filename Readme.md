@@ -2,7 +2,7 @@
 
 This is a "hello world"-type project, for a Game Boy DMG to connect to a Microchip Uno32 via SPI.
 
-## Compiling
+## Compiling & installing
 
 ### Uno32
 
@@ -22,5 +22,5 @@ or whatever you wish to name your output .gb-image.
 
 ### TODO
 
-[ ] Links to sourceforge and github
-[ ] Credit h4xxel and others
+- [ ] Links to sourceforge and github
+- [ ] Credit h4xxel and others
