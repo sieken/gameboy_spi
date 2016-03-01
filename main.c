@@ -45,8 +45,7 @@ int main (void) {
 
   while (1) {
     c = message[i];
-    SPI2BUF = c;
-    send_byte();
+    send (c);
     if ((IFS(1)&(1<<6))) {
       if (i >= 3) {
         i = 0;
