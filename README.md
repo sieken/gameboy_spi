@@ -16,7 +16,7 @@ Enter the mcb32 environment and in the hello\_spi directory, run;
 Install the GBDK environment (sourceforge or github) by following provided instructions.
 
 In the hello\_slave directory, run;
-`$ lcc hello\_slave.c -o hello\_slave.gb`
+`$ lcc hello_slave.c -o hello_slave.gb`
 or whatever you wish to name your output .gb-image.
 
 
