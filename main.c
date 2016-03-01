@@ -36,7 +36,7 @@ void sleep (void) {
 }
 
 int main (void) {
-  int i;
+  uint8_t i;
   char c;
 
   spi_init();
@@ -44,16 +44,15 @@ int main (void) {
   PORTF = 0x1;
 
   while (1) {
+    c = message[i];
+    SPI2BUF = c;
+    send_byte();
     if ((IFS(1)&(1<<6))) {
-      c = message[i];
-      SPI2BUF = c;
-
       if (i >= 3) {
         i = 0;
       } else {
         i++;
       }
-
       IFS(1) = 0;
     }
   }
