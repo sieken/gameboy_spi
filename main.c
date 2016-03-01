@@ -6,9 +6,10 @@
 #include <stdint.h>
 #include <pic32mx.h>
 
-#define SLEEP 1500000
+#define SLEEP 4000000
 
-uint8_t message[3] = {0x53,0x4F,0x53};
+// uint8_t message[3] = {0x53,0x4F,0x53};
+char message[3] = {'S','O','S'};
 uint8_t clrBuf;
 
 void spi_init (void);
