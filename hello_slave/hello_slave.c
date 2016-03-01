@@ -3,24 +3,35 @@
 
 #define SC  *(volatile UBYTE *) 0xFF02
 
+char transmission[3] = { 0 };
+
 int main (void) {
+  UBYTE i = 0;
   UBYTE c = 0xAA;
+  printf("Incoming transmission...\n");
+
   while (1) {
-    if (joypad() & J_START) {
-      waitpadup();
-      _io_out = c;
-      SC = 0x80;
-      receive_byte();
-      printf("Receiving...\n");
-      while (_io_status == IO_RECEIVING) {
-        /* wait */
+    _io_out = c;
+    receive_byte();
+    while (_io_status == IO_RECEIVING) {;}
+
+    transmission[i] = _io_in;
+    i++;
+    if (i >= 2) {
+      for (i = 0; i < 3; i++) {
+        printf ("%c",transmission[i]);
       }
-      if (_io_status == IO_IDLE) {
-        printf ("Received: %x\n",_io_in);
-      } else {
-        printf ("Error: %x\n",_io_status);
-      }
+      i = 0;
     }
+
+    /*
+       if (_io_status == IO_IDLE) {
+       printf ("Received: %c\n",_io_in);
+       } else {
+       printf ("Error: %c\n",_io_status);
+       }
+       */
+
   }
   return 0;
 }
