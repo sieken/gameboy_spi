@@ -28,8 +28,8 @@ int main (void) {
     if (i >= 3) {
       for (i = 0; i < 3; i++) {
         printf("%c",transmission[i]);
-        printf("\n");
       }
+      printf("\n");
       i = 0;
     }
   }
