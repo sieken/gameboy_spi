@@ -8,6 +8,7 @@
 #include <gb/gb.h>
 
 char message[19] = { 0 };
+UBYTE handshake = 0x00;
 
 #define TR_SIZE   19
 #define SC        *(volatile UBYTE *) 0xFF02
@@ -37,18 +38,10 @@ void debug_send (void) {
   }
 }
 
-int main (void) {
-  UBYTE ccount = 0;
-  UBYTE handshake = 0x00;
-  char input;
-
-  /* don't start receiving until ready */
-  printf("Incoming transmission\n");
-
-  /*handshake routine*/
+/* handshake routine */
+void wait_handshake (void) {
   while (1) {
-    _io_out = handshake;
-
+    _io_out = 0;
     if (joypad() & J_A) {
       waitpadup();
       handshake = 0xAA;
@@ -56,16 +49,22 @@ int main (void) {
       receive_byte();
       debug_receive();
     }
-
-    if ((volatile UBYTE)_io_in == 0xAA) {
-      // break;
-    }
   }
+}
+
+int main (void) {
+  UBYTE ccount = 0;
+  UBYTE output = 0x00;
+  char input;
+
+  /* don't start receiving until ready */
+  printf("Incoming transmission\n");
+  wait_handshake();
   printf("...\n");
 
   /* main routine */
   while (1) {
-    _io_out = handshake;      // write c to gb serial out buffer
+    _io_out = output;      // write c to gb serial out buffer
     receive_byte();
 
     /* wait for receive done */
@@ -86,6 +85,5 @@ int main (void) {
     }
     ccount++;
   }
-
   return 0;
 }
