@@ -9,11 +9,15 @@
 
 char message[19] = { 0 };
 
-#define TR_SIZE   (sizeof(message)/sizeof(message[0]))
+#define TR_SIZE   19
 #define SC        *(volatile UBYTE *) 0xFF02
 #define CR        0x0D
 
 void debug_receive (void) {
+  printf("DEBUGGING receive_byte()\n");
+  while (_io_status == IO_RECEIVING) {
+    /* wait for io completion */
+  }
   if (_io_status == IO_IDLE) {
     printf("Received: %c\n",_io_in);
   } else {
@@ -21,19 +25,47 @@ void debug_receive (void) {
   }
 }
 
+void debug_send (void) {
+  printf("DEBUGGING send_byte()\n");
+  while (_io_status == IO_SENDING) {
+    /* wait for io completion */
+  }
+  if (_io_status == IO_IDLE) {
+    printf("Byte sent: %c\n");
+  } else {
+    printf("Error: %c\n",_io_status);
+  }
+}
+
 int main (void) {
   UBYTE ccount = 0;
-  UBYTE c = 0xAA;
+  UBYTE handshake = 0x00;
   char input;
 
   /* don't start receiving until ready */
-  printf("Incoming transmission...\n");
-  joypad();
-  waitpadup();
+  printf("Incoming transmission\n");
+
+  /*handshake routine*/
+  while (1) {
+    _io_out = handshake;
+
+    if (joypad() & J_A) {
+      waitpadup();
+      handshake = 0xAA;
+      _io_out = handshake;
+      receive_byte();
+      debug_receive();
+    }
+
+    if ((volatile UBYTE)_io_in == 0xAA) {
+      // break;
+    }
+  }
+  printf("...\n");
 
   /* main routine */
   while (1) {
-    _io_out = c;      // write c to gb serial out buffer
+    _io_out = handshake;      // write c to gb serial out buffer
     receive_byte();
 
     /* wait for receive done */

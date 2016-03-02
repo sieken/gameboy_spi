@@ -58,13 +58,21 @@ int main (void) {
   TRISF &= ~0x1;
   PORTF &= ~0x1;
 
+  /*test handshake routine*/
+  while (1) {
+    send((char)0x00);
+    if (clrBuf == 0xAA) {
+      break;
+    }
+  }
+
   /* main routine */
   while (1) {
     c = message[ccount];
     send (c);
     if () {
-      PORTF ^= 0x1;
       sleep();
+      PORTF ^= 0x1;
       ccount++;
       if (ccount > MS_LENGTH)
       ccount = 0;
