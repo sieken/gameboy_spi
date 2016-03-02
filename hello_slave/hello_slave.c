@@ -88,10 +88,11 @@ void setup_isr (void) {
 }
 
 int main (void) {
-  UBYTE ccount = 0;
-  UBYTE output = 0x00;
-  char input;
+//  UBYTE ccount = 0;
+//  UBYTE output = 0x00;
+//  char input;
   /* don't start receiving until ready */
+  disable_interrupts();
   while (1) {
     if (joypad()&J_A) {
       waitpadup();
