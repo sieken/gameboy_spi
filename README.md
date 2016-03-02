@@ -6,7 +6,7 @@ This is a "hello world"-type project, for a Game Boy DMG to connect to a Microch
 
 ### Uno32
 
-Install the mcb32 environment (found [here](https://github.com/is1200-example-projects/mcb32tools/releases/)) by following provide instructions.
+Install the mcb32 environment (found [here](https://github.com/is1200-example-projects/mcb32tools/releases/)) by following provided instructions.
 
 Enter the mcb32 environment and in the hello\_spi directory, run;
 `$ make` and `$ make install` to flash it to the Uno32 board.
