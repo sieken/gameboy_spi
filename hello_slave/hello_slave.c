@@ -1,7 +1,8 @@
 /* hello_slave.c 
    
-   a hello world type program that receives a byte of information
-   via the Game Boy's link cable, and displays it on screen. */
+   a hello world type program that receives a series of 
+   bytes via the Game Boy's link cable, and prints them out
+   on screen. */
 
 #include <stdio.h>
 #include <gb/gb.h>
