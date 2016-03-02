@@ -8,6 +8,7 @@
 
 
 uint8_t clrBuf;
+uint8_t handshake = 0x00;
 char message[] = {
   'S','o','c','i','l','i','s','t','e','r',' ','h','e','m','+',0x0D,
   'u','r',' ','h','u','s','e',' ','h','a',' ','h','a','+','+',0x0D,
@@ -40,7 +41,10 @@ void send (char c) {
   while(!(SPI2STAT & 0x08));
   SPI2BUF = c;
   while(!(SPI2STAT & 0x01));
-  clrBuf = SPI2BUF;
+  if (SPI2BUF == (uint8_t)0xAA) {
+    handshake = (uint8_t)SPI2BUF;
+  }
+  clrBuf = (uint8_t)SPI2BUF;
 }
 
 /* bad sleep function */
@@ -52,6 +56,7 @@ void sleep (void) {
 int main (void) {
   uint8_t ccount;
   char c;
+  char idle_send = (char)'&';
 
   /* initialize SPI & LED5 */
   spi_init();
@@ -60,23 +65,23 @@ int main (void) {
 
   /*test handshake routine*/
   while (1) {
-    send((char)0x00);
-    if (clrBuf == 0xAA) {
+    send(idle_send);
+    if (handshake == 0xAA) {
       break;
     }
+    sleep();
   }
 
   /* main routine */
   while (1) {
     c = message[ccount];
     send (c);
-    if () {
-      sleep();
-      PORTF ^= 0x1;
-      ccount++;
-      if (ccount > MS_LENGTH)
-      ccount = 0;
-    }
+    sleep();
+    PORTF ^= 0x1;
+    ccount++;
+    if (ccount > MS_LENGTH)
+    ccount = 0;
+
   }
   return 0;
 }
