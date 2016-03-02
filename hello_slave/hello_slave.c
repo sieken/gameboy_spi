@@ -1,6 +1,6 @@
-/* hello_slave.c 
-   
-   a hello world type program that receives a series of 
+/* hello_slave.c
+
+   a hello world type program that receives a series of
    bytes via the Game Boy's link cable, and prints them out
    on screen. */
 
@@ -9,7 +9,7 @@
 
 char message[19] = { 0 };
 
-#define TR_SIZE   (sizeof(message)/sizeof(message[]))
+#define TR_SIZE   (sizeof(message)/sizeof(message[0]))
 #define SC        *(volatile UBYTE *) 0xFF02
 #define CR        0x0D
 
@@ -28,8 +28,8 @@ int main (void) {
 
   /* don't start receiving until ready */
   printf("Incoming transmission...\n");
-  waitpad();
-  waitpadup()
+  joypad();
+  waitpadup();
 
   /* main routine */
   while (1) {
@@ -38,16 +38,19 @@ int main (void) {
 
     /* wait for receive done */
     while (_io_status == IO_RECEIVING) {;}
-    input = (char) _io_in;
+    input = ((char)_io_in);
 
     /* check for carriage return */
     if (input == (char)CR ) {
-      for (ccount = 0; ccount < TR_SIZE; ccount++) 
+      /* print & clear */
+      for (ccount = 0; ccount < TR_SIZE; ccount++) {
         printf("%c",message[ccount]);
+        message[ccount] = 0;
+      }
       printf("\n");
       ccount = 0;
-    } else { 
-      message[i] = input;
+    } else {
+      message[ccount] = input;
     }
     ccount++;
   }
