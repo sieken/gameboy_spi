@@ -18,7 +18,7 @@ char message[] = {
 
 
 #define MS_LENGTH   (sizeof(message)/sizeof(message[0]))
-#define SLEEP       4000000
+#define SLEEP       10000000
 
 void spi_init (void);
 void send (char c);
@@ -42,6 +42,8 @@ void send (char c) {
   SPI2BUF = c;
   while(!(SPI2STAT & 0x01));
   clrBuf = (uint8_t)SPI2BUF;
+
+  /*check if incoming data matches handshake*/
   if (clrBuf == (uint8_t)0xAA) {
     handshake = (uint8_t)clrBuf;
   }
@@ -54,34 +56,34 @@ void sleep (void) {
 }
 
 int main (void) {
-  uint8_t ccount;
+  uint8_t ccount = 0x00;
   char c;
-  char idle_send = (char)'&';
+  char idle_send = 0xAA;
 
   /* initialize SPI & LED5 */
   spi_init();
-  TRISF &= ~0x1;
-  PORTF &= ~0x1;
+  TRISF &= ~0x01;
+  PORTF &= ~0x01;
 
   /*test handshake routine*/
   while (1) {
+    PORTF = 0x01;
+    sleep();
     send(idle_send);
-    PORTF ^= 0x1;
     if (handshake == 0xAA) {
       break;
     }
-    sleep();
   }
 
   /* main routine */
   while (1) {
-    PORTF = 0x00;
+    PORTF = 0x00;             //turns light off when main runs
     c = message[ccount];
-    send (c);
     sleep();
+    send (c);
     ccount++;
     if (ccount > MS_LENGTH)
-    ccount = 0;
+      ccount = 0;
 
   }
   return 0;
