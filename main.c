@@ -9,10 +9,10 @@
 
 uint8_t clrBuf;
 char message[] = {
-  'S','o','c',0x0D,'l','i','s','t','e','r',' ','h','e','m',' ',0x0D,
-  'u','r',' ','h','u','s','e',' ','h','a',' ','h','a',' ',0x0D,
-  'l','o','l',',','t','r','o','d','d','e',' ','d','u',0x0D,
-  'j','a','.',' ','*','F','i','s','!',' ',' ',' ',0x0D,
+  'S','o','c','i','l','i','s','t','e','r',' ','h','e','m','+',0x0D,
+  'u','r',' ','h','u','s','e',' ','h','a',' ','h','a','+','+',0x0D,
+  'l','o','l',',','t','r','o','d','d','e',' ','d','u','+','+',0x0D,
+  'j','a','.',' ','*','F','i','s','*','+','+','+','+','+','+',0x0D,
 };
 
 
@@ -62,11 +62,13 @@ int main (void) {
   while (1) {
     c = message[ccount];
     send (c);
-    PORTF ^= 0x1;
-    sleep();
-    ccount++;
-    if (ccount > MS_LENGTH)
+    if () {
+      PORTF ^= 0x1;
+      sleep();
+      ccount++;
+      if (ccount > MS_LENGTH)
       ccount = 0;
+    }
   }
   return 0;
 }
