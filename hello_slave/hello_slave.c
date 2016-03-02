@@ -8,7 +8,7 @@
 #include <gb/gb.h>
 
 char message[19] = { 0 };
-UBYTE handshake = 0x00;
+volatile UBYTE handshake_ok = 0x00;
 
 #define IFLAGS    *(volatile UBYTE *) 0xFF0F
 #define SC        *(volatile UBYTE *) 0xFF02
@@ -60,38 +60,21 @@ void debug_send (void) {
   }
 }
 
-/* handshake routine */
 void wait_handshake (void) {
-    /* THIS IS CRAP FOR NOW
-     UBYTE ok = 0x00;
-     UBYTE received;
-
-     _io_out = 0x00;
-
-     while (1) {
-     if (joypad() & J_A) {
-     waitpadup();
-     receive();
-     ok = 0x01;
-     _io_out = HANDSHAKE;
-     }
-
-     if (ok) {
-     receive();
-     received = (UBYTE)_io_in;
-     if (received == HANDSHAKE) {
-     printf("Handshake OK!: %x\n", received);
-     } else {
-     printf("Received: %x : %c\n", received, received);
-     }
-     _io_out = HANDSHAKE;
-     }
-     } */
+  while (1) {
+    if (handshake_ok) {
+      break;
+    }
+  }
 }
 
 void sio_isr (void) {
+  int handshake;
   handshake = SB;
-  SB = 0xAA;
+  if (handshake == 0xAA) {
+    handshake_ok = (UBYTE)0x01;
+    SB = 0xAA;
+  }
   printf("INTERRUPTS FUNKAR!\n");
   printf("RECEIVED: %x : %c\n", handshake, handshake);
 }
@@ -105,39 +88,43 @@ void setup_isr (void) {
 }
 
 int main (void) {
-//  UBYTE ccount = 0;
-//  UBYTE output = 0x00;
-//  char input;
-  printf("RECEIVING");
+  UBYTE ccount = 0;
+  UBYTE output = 0x00;
+  char input;
+  /* don't start receiving until ready */
+  while (1) {
+    if (joypad()&J_A) {
+      waitpadup();
+      break;
+    }
+  }
+  printf("Incoming transmission\n");
   delay(1000);
   setup_isr();
-
-  /* don't start receiving until ready */
-  printf("Incoming transmission\n");
   printf("...\n");
 
   /* main routine */
   while (1) {}
-//    _io_out = output;      // write c to gb serial out buffer
-//    receive_byte();
-//
-//    /* wait for receive done */
-//    while (_io_status == IO_RECEIVING) {;}
-//    input = ((char)_io_in);
-//
-//    /* check for carriage return */
-//    if (input == (char)CR ) {
-//      /* print & clear */
-//      for (ccount = 0; ccount < TR_SIZE; ccount++) {
-//        printf("%c",message[ccount]);
-//        message[ccount] = 0;
-//      }
-//      printf("\n");
-//      ccount = 0;
-//    } else {
-//      message[ccount] = input;
-//    }
-//    ccount++;
-//  }
-//  return 0;
-}
+  //    _io_out = output;      // write c to gb serial out buffer
+  //    receive_byte();
+  //
+  //    /* wait for receive done */
+  //    while (_io_status == IO_RECEIVING) {;}
+  //    input = ((char)_io_in);
+  //
+  //    /* check for carriage return */
+  //    if (input == (char)CR ) {
+  //      /* print & clear */
+  //      for (ccount = 0; ccount < TR_SIZE; ccount++) {
+  //        printf("%c",message[ccount]);
+  //        message[ccount] = 0;
+  //      }
+  //      printf("\n");
+  //      ccount = 0;
+  //    } else {
+  //      message[ccount] = input;
+  //    }
+  //    ccount++;
+  //  }
+  //  return 0;
+  }
