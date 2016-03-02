@@ -18,7 +18,7 @@ char message[] = {
 
 
 #define MS_LENGTH   (sizeof(message)/sizeof(message[0]))
-#define SLEEP       2000000
+#define SLEEP       2 //Mhz
 
 void spi_init (void);
 void send (char c);
@@ -50,7 +50,7 @@ void send (char c) {
 /* bad sleep function */
 void sleep (void) {
   int i;
-  for (i = 0; i < SLEEP; i++) {/* do nothing */}
+  for (i = 0; i < (SLEEP * 1000000); i++) {/* do nothing */}
 }
 
 int main (void) {
