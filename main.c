@@ -7,7 +7,7 @@
 #include <pic32mx.h>
 
 
-#define ID_SLEEP    10000000
+#define ID_SLEEP    1000000
 #define TR_SLEEP    2000000
 
 #define EOT   0x04
@@ -100,6 +100,8 @@ int main (void) {
         send_rcv(message[ccount]);
         sleep(TR_SLEEP);
       }
+      active = 0x00;
+      idling = 0x01;
     }
   }
 
