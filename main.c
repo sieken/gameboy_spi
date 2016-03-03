@@ -1,90 +1,107 @@
 /* main.c
 
-   this uses the chipkit as master to send characters to a gameboy
-   via SPI */
+   This uses the chipkit as master to send characters to a gameboy
+   via SPI. The string message[] must be null terminated. */
 
 #include <stdint.h>
 #include <pic32mx.h>
 
 
-uint8_t clrBuf;
-uint8_t handshake = 0x00;
-char message[] = {
-  'S','o','c','i','l','i','s','t','e','r',' ','h','e','m','+',0x0D,
-  'u','r',' ','h','u','s','e',' ','h','a',' ','h','a','+','+',0x0D,
-  'l','o','l',',','t','r','o','d','d','e',' ','d','u','+','+',0x0D,
-  'j','a','.',' ','*','F','i','s','*','+','+','+','+','+','+',0x0D,
-};
+#define ID_SLEEP    10000000
+#define TR_SLEEP    2000000
+
+#define EOT   0x04
+#define ENQ   0x05
+#define ACK   0x06
+#define CAN   0x18
+
+volatile uint8_t clrBuf;
+volatile uint8_t idling = 0x01; // starts in idle state
+volatile uint8_t active = 0x00;
+
+char message[] = "Jag vill inte mer\nJag vill inte vara haer\nJag vill inte mer.";
+uint8_t message_length = (sizeof(message)/sizeof(char));
+char idle_send = ENQ;
+
+void init (void);
+void user_isr (void);
+void send_rcv (char c);
+void sleep (int t);
 
 
-#define MS_LENGTH   (sizeof(message)/sizeof(message[0]))
-#define SLEEP       10000000
-
-void spi_init (void);
-void send (char c);
-void sleep (void);
-
-/* SPI initialization routine */
-void spi_init (void) {
+/* initialization routine */
+void init (void) {
+  /* turn spi off and clear interrupts */
   SPI2CON = 0;
   IEC(1) = 0;
   IPC(7) = 0;
   IFS(1) = 0;
 
+  /* set interrupts */
+  IPC(7) = (7<<24);
+  IEC(1) = (1<<7);
+
+  /* set spi */
   SPI2BRG = 0x1FF;      // Set SCK ~78kHz
   SPI2STATCLR = 0x40;
   SPI2CON = 0x8060;     // Set ON, CKE, MSTEN
+  asm("ei");
 }
 
-/* send one character (byte) of data via SPI */
-void send (char c) {
+void user_isr (void) {
+  clrBuf = SPI2BUF;
+
+  /* acknowledges in idle */
+  if (idling && clrBuf == ACK) {
+    idling = 0x00;
+    active = 0x01;
+  }
+
+  /* should cancel and revert to idle mode */
+  if (clrBuf == CAN) {
+    active = 0x00;
+    idling = 0x01;
+  }
+
+  IFSCLR(1) = (1<<7);
+}
+
+/* sends one character via SPI */
+void send_rcv (char c) {
   while(!(SPI2STAT & 0x08));
   SPI2BUF = c;
-  while(!(SPI2STAT & 0x01));
-  clrBuf = (uint8_t)SPI2BUF;
-
-  /*check if incoming data matches handshake*/
-  if (clrBuf == (uint8_t)0xAA) {
-    handshake = (uint8_t)clrBuf;
-  }
 }
 
 /* bad sleep function */
-void sleep (void) {
+void sleep (int t) {
   int i;
-  for (i = 0; i < SLEEP; i++) {/* do nothing */}
+  for (i = 0; i < t; i++) {/* do nothing */}
 }
 
 int main (void) {
   uint8_t ccount = 0x00;
-  char c;
-  char idle_send = 0xAA;
 
   /* initialize SPI & LED5 */
-  spi_init();
+  init();
   TRISF &= ~0x01;
-  PORTF &= ~0x01;
-
-  /*test handshake routine*/
-  while (1) {
-    PORTF = 0x01;
-    sleep();
-    send(idle_send);
-    if (handshake == 0xAA) {
-      break;
-    }
-  }
+  PORTF = 0x00;
 
   /* main routine */
   while (1) {
-    PORTF = 0x00;             //turns light off when main runs
-    c = message[ccount];
-    sleep();
-    send (c);
-    ccount++;
-    if (ccount > MS_LENGTH)
-      ccount = 0;
+    PORTF ^= 0x01;
+    while (idling) {
+      send_rcv(ENQ);
+      sleep(ID_SLEEP);
+    }
 
+    PORTF ^= 0x01;
+    while (active) {
+      for (ccount = 0; ccount < message_length; ccount++) {
+        send_rcv(message[ccount]);
+        sleep(TR_SLEEP);
+      }
+    }
   }
+
   return 0;
 }

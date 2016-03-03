@@ -7,40 +7,49 @@
 #include <stdio.h>
 #include <gb/gb.h>
 
-char message[19] = { 0 };
-volatile UBYTE handshake_ok = 0x00;
-
+/* interrupt flag, serial control and serial buffer registers */
 #define IFLAGS    *(volatile UBYTE *) 0xFF0F
 #define SC        *(volatile UBYTE *) 0xFF02
 #define SB        *(volatile UBYTE *) 0xFF01
 
-#define CR        0x0D
-#define TR_SIZE   19
-#define HANDSHAKE 0xAA
+/* define ascii tokens for readability */
+#define ETB 0x00
+#define ENQ 0x05
+#define ACK 0x06
+#define CAN 0x18
+
+#define MAX_LENGTH  141
+
+/* globals */
+volatile UBYTE handshake_ok = 0x00;
+volatile UBYTE receiving = 0x00;
+volatile UBYTE idling = 0x01;
+volatile UINT8 ccount = 0;
+char message[MAX_LENGTH] = { 0 };
+
 
 /* All functions in advance */
 void receive (void);
 void debug_receive (void);
 void debug_send (void);
-void wait_handshake (void);
-void sio_isr (void);
 void setup_isr (void);
+void sio_isr (void);
+void idle_mode (void);
+void print_message (void);
+
+
 
 
 
 void receive (void) {
   receive_byte();
-  while (_io_status == IO_RECEIVING) {
-    /* Wait for IO completion */
-  }
+  /* Wait for IO completion */
+  while (_io_status == IO_RECEIVING) {;}
 }
 
 void debug_receive (void) {
-  printf("DEBUGGING receive_byte()\n");
+  printf("DEBUG receive_byte()\n");
   receive();
-  while (_io_status == IO_RECEIVING) {
-    /* wait for io completion */
-  }
   if (_io_status == IO_IDLE) {
     printf("Received: %x\n",_io_in);
   } else {
@@ -49,7 +58,8 @@ void debug_receive (void) {
 }
 
 void debug_send (void) {
-  printf("DEBUGGING send_byte()\n");
+  printf("DEBUG send_byte()\n");
+  send_byte();
   while (_io_status == IO_SENDING) {
     /* wait for io completion */
   }
@@ -60,38 +70,65 @@ void debug_send (void) {
   }
 }
 
-void wait_handshake (void) {
-  while (1) {
-    if (handshake_ok) {
-      break;
-    }
-  }
-}
-
-void sio_isr (void) {
-  int handshake;
-  handshake = SB;
-  if (handshake == 0xAA) {
-    handshake_ok = (UBYTE)0x01;
-    SB = 0xAA;
-  }
-  printf("INTERRUPTS FUNKAR!\n");
-  printf("RECEIVED: %x : %c\n", handshake, handshake);
-}
-
 void setup_isr (void) {
   disable_interrupts();
-  IFLAGS = (UBYTE) 0x00;
+  IFLAGS = (UBYTE)0x00;
   add_SIO(sio_isr);
   enable_interrupts();
   set_interrupts(SIO_IFLAG);
 }
 
+void sio_isr (void) {
+  volatile UBYTE rcv = 0x00;
+  rcv = SB;
+
+  /* idling & handshaking */
+  if (idling) {
+    if (rcv == ENQ && handshake_ok) {
+      SB = ACK;
+      receiving = 0x01;
+      idling = 0x00;
+    }
+    printf("idling rcv: %c\n", rcv);
+  }
+
+  /* receiving */
+  if (receiving && rcv == ENQ) {
+    /* discard ENQs and ACKs */
+  } else if (receiving && rcv != ETB) {
+    message[ccount] = (char)rcv;
+    ccount++;
+    printf("receiving rcv: %c\n", rcv);
+  } else if (receiving && (ccount == MAX_LENGTH || rcv == ETB)) {
+    for (; ccount < MAX_LENGTH; ccount++) {
+      message[ccount] = (char)0x00;
+    }
+    SB = CAN;
+    receiving = 0x00;
+    handshake_ok = 0x00;
+    idling = 0x01;
+  }
+}
+
+void idle_mode (void) {
+  while (1) {
+    if (joypad()&J_A)
+      handshake_ok = 0x01;
+  }
+}
+
+void print_message (void) {
+  UINT8 i;
+  for (i = 0; i < MAX_LENGTH; i++) {
+    putchar(message[i]);
+  }
+}
+
+
+
 int main (void) {
-//  UBYTE ccount = 0;
-//  UBYTE output = 0x00;
-//  char input;
   /* don't start receiving until ready */
+  SB = 0x00;
   disable_interrupts();
   while (1) {
     if (joypad()&J_A) {
@@ -99,33 +136,19 @@ int main (void) {
       break;
     }
   }
+
   printf("Incoming transmission\n");
-  delay(1000);
   setup_isr();
-  printf("...\n");
 
   /* main routine */
-  while (1) {}
-  //    _io_out = output;      // write c to gb serial out buffer
-  //    receive_byte();
-  //
-  //    /* wait for receive done */
-  //    while (_io_status == IO_RECEIVING) {;}
-  //    input = ((char)_io_in);
-  //
-  //    /* check for carriage return */
-  //    if (input == (char)CR ) {
-  //      /* print & clear */
-  //      for (ccount = 0; ccount < TR_SIZE; ccount++) {
-  //        printf("%c",message[ccount]);
-  //        message[ccount] = 0;
-  //      }
-  //      printf("\n");
-  //      ccount = 0;
-  //    } else {
-  //      message[ccount] = input;
-  //    }
-  //    ccount++;
-  //  }
-  //  return 0;
+  while (1) {
+    idle_mode();
+
+    /* wait until receive done */
+    while (receiving) {;}
+
+    print_message();
   }
+
+  return 0;
+}
