@@ -93,8 +93,9 @@ void sio_isr (void) {
   }
 
   /* receiving */
-  if (receiving && rcv == ENQ) {;} // discard ENQs and ACKs
-  else if (receiving && rcv != ETB) {
+  if (receiving && rcv == ENQ) {
+    /* discard ENQs and ACKs */
+  } else if (receiving && rcv != ETB) {
     message[ccount] = (char)rcv;
     ccount++;
     printf("receiving rcv: %c\n", rcv);
@@ -111,9 +112,10 @@ void sio_isr (void) {
 
 void idle_mode (void) {
   while (1) {
-    if (joypad()&J_A)
+    if (joypad()&J_A) {
       waitpadup();
       handshake_ok = 0x01;
+    }
   }
 }
 
@@ -125,18 +127,10 @@ void print_message (void) {
 }
 
 
-
 int main (void) {
   /* don't start receiving until ready */
   SB = 0x00;
   disable_interrupts();
-  while (1) {
-    if (joypad()&J_A) {
-      waitpadup();
-      break;
-    }
-  }
-
   printf("Incoming transmission\n");
   setup_isr();
 
