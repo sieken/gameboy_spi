@@ -17,7 +17,6 @@
 #define ENQ 0x05
 #define ACK 0x06
 #define CAN 0x18
-
 #define MAX_LENGTH  141
 
 /* globals */
@@ -88,8 +87,8 @@ void sio_isr (void) {
       SB = ACK;
       receiving = 0x01;
       idling = 0x00;
+      handshake_ok = 0x00;
     }
-    printf("idling rcv: %c\n", rcv);
   }
 
   /* receiving */
@@ -98,16 +97,23 @@ void sio_isr (void) {
   } else if (receiving && rcv != ETB) {
     message[ccount] = (char)rcv;
     ccount++;
-    printf("receiving rcv: %c\n", rcv);
   } else if (receiving && (ccount == MAX_LENGTH || rcv == ETB)) {
     for (; ccount < MAX_LENGTH; ccount++) {
       message[ccount] = (char)0x00;
     }
-    SB = CAN;
     receiving = 0x00;
-    handshake_ok = 0x00;
-    idling = 0x01;
   }
+
+  if (!idling && !receiving) {
+    for (ccount = 0; ccount < MAX_LENGTH; ccount++) {
+      printf("%c", message[ccount]);
+      delay(50);
+    }
+    idling = 0x01;
+    handshake_ok = 0x00;
+    ccount = 0;
+  }
+  IFLAGS &= ~0x08;
 }
 
 void idle_mode (void) {
@@ -119,19 +125,14 @@ void idle_mode (void) {
   }
 }
 
-void print_message (void) {
-  UINT8 i;
-  for (i = 0; i < MAX_LENGTH; i++) {
-    putchar(message[i]);
-  }
-}
 
 
 int main (void) {
+  UINT8 i = 0;
+
   /* don't start receiving until ready */
   SB = 0x00;
   disable_interrupts();
-  printf("Incoming transmission\n");
   setup_isr();
 
   /* main routine */
@@ -140,8 +141,6 @@ int main (void) {
 
     /* wait until receive done */
     while (receiving) {;}
-
-    print_message();
   }
 
   return 0;
