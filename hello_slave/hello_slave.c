@@ -93,8 +93,8 @@ void sio_isr (void) {
   }
 
   /* receiving */
-  if (receiving && rcv == ENQ) {
-    /* discard ENQs and ACKs */
+  if (receiving && (rcv == ENQ || rcv == ACK)) {
+    /* discard ENQs and ACKs while receiving */
   } else if (receiving && rcv != ETB) {
     message[ccount] = (char)rcv;
     ccount++;
