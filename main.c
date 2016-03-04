@@ -8,7 +8,7 @@
 
 
 #define ID_SLEEP    1000000
-#define TR_SLEEP    2000000
+#define TR_SLEEP    25000
 
 #define EOT   0x04
 #define ENQ   0x05
@@ -19,7 +19,7 @@ volatile uint8_t clrBuf;
 volatile uint8_t idling = 0x01; // starts in idle state
 volatile uint8_t active = 0x00;
 
-char message[] = "Hello world!";
+char message[] = "hello silly world!";
 uint8_t message_length = (sizeof(message)/sizeof(char));
 char idle_send = ENQ;
 
@@ -88,13 +88,12 @@ int main (void) {
 
   /* main routine */
   while (1) {
+    PORTF ^= 0x01;
     while (idling) {
       send_rcv(ENQ);
       sleep(ID_SLEEP);
-      PORTF ^= 0x01;
     }
 
-    PORTF = 0x01;
     while (active) {
       for (ccount = 0; ccount < message_length; ccount++) {
         send_rcv(message[ccount]);

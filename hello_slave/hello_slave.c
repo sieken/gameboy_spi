@@ -23,11 +23,11 @@
 #define MAX_LENGTH  144
 
 /* graphic defines */
-#define CRS_START_X 0x02
-#define CRS_START_Y 0x3
+#define CRS_START_X 0x01
+#define CRS_START_Y 0x01
 #define ASCII_OFFSET 0x20
 #define TILE_STEP 0x01
-#define BUBBLE_RIGHT_EDGE 0x13
+#define BUBBLE_RIGHT_EDGE 0x12
 
 /*
 BKG table
@@ -55,15 +55,8 @@ tl:  sym   tl:  sym  tl:  sym  tl:  sym  tl:  sym  tl:   sym tl:   sym
 19:  3     40:  H    61:  ]    82:  r    103: .    124:  .   145:
 20:  4     41:  I    62:  ^    83:  s    104: .    125:  .   146:
 14
-
-/*
-pixel chatbubble distribution
-    -----------------------------------------------x
-    frm (8 ; 24)              (152 ; 24) frm  row 2
-                                                .
-    frm (8 ; 80)              (152 ; 80) frm  row 10
-col  9     10                      17     20
 */
+
 /* placement (in tiles) of bkg_data on screen
    18 rows of 20 tiles each, numbers representing tile number
    in bkg_data table (see local bkg_init() and gb.h set_bkg_data()) */
@@ -77,16 +70,16 @@ const unsigned char tweetboy_bkg[] = {
 134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 120-139
 134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 140-159
 134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 160-179
-133,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,132,131,  //ind 180-199
+133,132,132,132,132,132,132,132,132,135,138,132,132,132,132,132,132,132,132,131,  //ind 180-199
 
- 95, 96, 97, 98, 98, 97, 96, 95,  0,135,137,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 200-219
- 99,100,101,102,102,101,100, 99,  0,136,138,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 220-239
-103,104,105,106,106,105,104,103,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 240-259
-107,108,109,110,110,109,108,107,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 260-279
-111,112,113,114,114,113,112,111,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 280-299
-115,116,117,118,118,117,116,115,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 300-319
-119,120,121,122,122,121,120,119,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 320-339
-123,124,125,126,126,125,124,123,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 340-359
+ 95, 97,103,105,105,103, 97, 95,  0,136,137,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 200-219
+ 96, 98,104,106,106,104, 98, 96,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 220-239
+ 99,101,107,109,109,107,101, 99,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 240-259
+100,102,108,110,110,108,102,100,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 260-279
+111,113,119,121,121,119,113,111,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 280-299
+112,114,120,122,122,120,114,112,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 300-319
+115,117,123,125,125,123,117,115,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 320-339
+116,118,124,126,126,124,118,116,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 340-359
 };
 /*
  01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20*/
@@ -157,15 +150,16 @@ void setup_bkg (void) {
 
   /* establish screen */
   set_bkg_tiles (0, 0, 20, 18, tweetboy_bkg);
+  SHOW_BKG;
   DISPLAY_ON;
   enable_interrupts ();
 }
 
 void sio_isr (void) {
   volatile UBYTE rcv = 0x00;
-  UINT8 pos_x = CRS_START_X;
-  UINT8 pos_y = CRS_START_Y;
-  char ascii_temp[1] = {0x00};
+  UINT8 pos_x;
+  UINT8 pos_y;
+  char ascii_temp[1] = { 0 };
   rcv = SB;
 
   /* idling & handshaking */
@@ -186,14 +180,16 @@ void sio_isr (void) {
     ccount++;
   } else if (receiving && (ccount == MAX_LENGTH || rcv == ETB)) {
     for (; ccount < MAX_LENGTH; ccount++) {
-      message[ccount] = (char)0x00;
+      message[ccount] = (char)ETB;
     }
     receiving = 0x00;
   }
 
   if (!idling && !receiving) {
+    pos_x = CRS_START_X;
+    pos_y = CRS_START_Y;
     for (ccount = 0; ccount < MAX_LENGTH; ccount++) {
-      if (message[ccount] == 0x80) {
+      if (message[ccount] == ETB) {
         break;
       }
       ascii_temp[0] = (message[ccount] - ASCII_OFFSET);
@@ -241,11 +237,8 @@ void idle_mode (void) {
 int main (void) {
   UINT8 i = 0;
 
-  /* don't start receiving until ready */
-  SB = 0x00;
-  disable_interrupts();
-  setup_isr();
   setup_bkg();
+  setup_isr();
 
   /* main routine */
   while (1) {
