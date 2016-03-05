@@ -19,7 +19,7 @@ volatile uint8_t clrBuf;
 volatile uint8_t idling = 0x01; // starts in idle state
 volatile uint8_t active = 0x00;
 
-char message[] = "hello silly world!";
+char message[] = "satan lever!";
 uint8_t message_length = (sizeof(message)/sizeof(char));
 char idle_send = ENQ;
 
@@ -84,17 +84,18 @@ int main (void) {
   /* initialize SPI & LED5 */
   init();
   TRISF &= ~0x01;
-  PORTF = 0x00;
+  PORTF = 0x01;
 
   /* main routine */
   while (1) {
-    PORTF ^= 0x01;
+    PORTF = 0x00;
     while (idling) {
-      send_rcv(ENQ);
+      send_rcv(idle_send);
       sleep(ID_SLEEP);
     }
 
     while (active) {
+      PORTF = 0x01;
       for (ccount = 0; ccount < message_length; ccount++) {
         send_rcv(message[ccount]);
         sleep(TR_SLEEP);
