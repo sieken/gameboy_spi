@@ -19,7 +19,7 @@ volatile uint8_t clrBuf;
 volatile uint8_t idling = 0x01; // starts in idle state
 volatile uint8_t active = 0x00;
 
-char message[] = "satan lever!";
+char message[] = "Hello, Game Boy!";
 uint8_t message_length = (sizeof(message)/sizeof(char));
 char idle_send = ENQ;
 
