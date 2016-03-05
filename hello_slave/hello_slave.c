@@ -5,12 +5,13 @@
    on screen. */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <gb/gb.h>
 
+#include "bkg_layout.c"
 #include "tiles.c"
 
 /* interrupt flag, serial control and serial buffer registers */
+#define IEREG     *(volatile UBYTE *) 0xFFFF
 #define IFLAGS    *(volatile UBYTE *) 0xFF0F
 #define SC        *(volatile UBYTE *) 0xFF02
 #define SB        *(volatile UBYTE *) 0xFF01
@@ -28,61 +29,6 @@
 #define ASCII_OFFSET 0x20
 #define TILE_STEP 0x01
 #define BUBBLE_RIGHT_EDGE 0x12
-
-/*
-BKG table
-tl:  sym   tl:  sym  tl:  sym  tl:  sym  tl:  sym  tl:   sym tl:   sym
-------------------------------------------------------------------
-0:   (spc) 21:  5    42:  J    63:  _    84:  t    105:  .   126:  .
-1:   !     22:  6    43:  K    64:  `    85:  u    106:  .   127:  tl
-2:   "     23:  7    44:  L    65:  a    86:  v    107:  .   128:  top
-3:   #     24:  8    45:  M    66:  b    87:  w    108:  .   129:  tr
-4:   $     25:  9    46:  N    67:  c    88:  x    109:  .   130:  right
-5:   %     26:  :    47:  O    68:  d    89:  y    110:  .   131:  lr
-6:   &     27:  ;    48:  P    69:  e    90:  z    111:  .   132:  bot
-7:   '     28:  <    49:  Q    70:  f    91:  {    112:  .   133:  ll
-8.   (     29:  =    50:  R    71:  g    92:  |    113:  .   134:  left
-9:   )     30:  >    51:  S    72:  h    93:  }    114:  .   135:  .
-10:  *     31:  ?    52:  T    73:  i    94:  ~    115:  .   136:  .
-11:  +     32:  @    53:  U    74:  j    95:  guy  116:  .   137:  .
-12:  ,     33:  A    54:  V    75:  k    96:  guy  117:  .   138:  bubble
-13:  -     34:  B    55:  W    76:  l    97:  guy  118:  .   139:
-14:  .     35:  C    56:  X    77:  m    98:  ...  119:  .   140:
-15:  /     36:  D    57:  Y    78:  n    99:  .    120:  .   141:
-16:  0     37:  E    58:  Z    79:  o    100: .    121:  .   142:
-17:  1     38:  F    59:  [    80:  p    101: .    122:  .   143:
-18:  2     39:  G    60:  \    81:  q    102: .    123:  .   144:
-19:  3     40:  H    61:  ]    82:  r    103: .    124:  .   145:
-20:  4     41:  I    62:  ^    83:  s    104: .    125:  .   146:
-14
-*/
-
-/* placement (in tiles) of bkg_data on screen
-   18 rows of 20 tiles each, numbers representing tile number
-   in bkg_data table (see local bkg_init() and gb.h set_bkg_data()) */
-const unsigned char tweetboy_bkg[] = {
-127,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,129,  //ind 0-19
-134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 20-39
-134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 40-59
-134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 60-79
-134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 80-99
-134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 100-119
-134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 120-139
-134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 140-159
-134,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,130,  //ind 160-179
-133,132,132,132,132,132,132,132,132,135,138,132,132,132,132,132,132,132,132,131,  //ind 180-199
-
- 95, 97,103,105,105,103, 97, 95,  0,136,137,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 200-219
- 96, 98,104,106,106,104, 98, 96,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 220-239
- 99,101,107,109,109,107,101, 99,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 240-259
-100,102,108,110,110,108,102,100,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 260-279
-111,113,119,121,121,119,113,111,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 280-299
-112,114,120,122,122,120,114,112,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 300-319
-115,117,123,125,125,123,117,115,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 320-339
-116,118,124,126,126,124,118,116,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //ind 340-359
-};
-/*
- 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20*/
 
 
 /* globals */
@@ -140,19 +86,17 @@ void setup_isr (void) {
   set_interrupts(SIO_IFLAG);
 }
 
-/* set up basic background */
+/* set up basic background (David J) */
 void setup_bkg (void) {
-  disable_interrupts ();
   DISPLAY_OFF;
   /* fill tile table */
-  set_bkg_data (0, 95, beta_ascii);
-  set_bkg_data (95, 45, guy_n_bubble);
+  set_bkg_data(0, 95, beta_ascii);
+  set_bkg_data(95, 45, guy_n_bubble);
 
   /* establish screen */
-  set_bkg_tiles (0, 0, 20, 18, tweetboy_bkg);
+  set_bkg_tiles(0, 0, 20, 18, tweetboy_bkg);
   SHOW_BKG;
   DISPLAY_ON;
-  enable_interrupts ();
 }
 
 void sio_isr (void) {
@@ -185,7 +129,24 @@ void sio_isr (void) {
     receiving = 0x00;
   }
 
+  /* printing to screen (David J, modified by David H) */
   if (!idling && !receiving) {
+    pos_x = CRS_START_X;
+    pos_y = CRS_START_Y;
+
+    /* clear */
+    for (ccount = 0; ccount < MAX_LENGTH; ccount++) {
+      ascii_temp[0] = 0x00;
+      set_bkg_tiles (pos_x, pos_y, 1, 1, ascii_temp);
+      /* adjust position */
+      if (pos_x == BUBBLE_RIGHT_EDGE) {
+        pos_x = CRS_START_X;
+        pos_y++;
+      } else {
+        pos_x++;
+      }
+    }
+
     pos_x = CRS_START_X;
     pos_y = CRS_START_Y;
     for (ccount = 0; ccount < MAX_LENGTH; ccount++) {
@@ -215,19 +176,18 @@ void sio_isr (void) {
         pos_x++;
       }
     }//close for-loop
-
     idling = 0x01;
-    handshake_ok = 0x00;
     ccount = 0;
   }
-  IFLAGS &= ~0x08;
 }
 
 void idle_mode (void) {
+  delay(500);
   while (1) {
     if (joypad()&J_A) {
       waitpadup();
       handshake_ok = 0x01;
+      break;
     }
   }
 }
@@ -237,14 +197,15 @@ void idle_mode (void) {
 int main (void) {
   UINT8 i = 0;
 
-  setup_bkg();
   setup_isr();
+  setup_bkg();
 
-  /* main routine */
+  /* keep program waiting for interrupts */
   while (1) {
-    idle_mode();
+    waitpad(J_A);
+    waitpadup();
+    handshake_ok = 0x01;
 
-    /* wait until receive done */
     while (receiving) {;}
   }
 
