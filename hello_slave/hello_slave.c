@@ -36,7 +36,9 @@
 volatile UBYTE handshake_ok = 0x00;
 volatile UBYTE receiving = 0x00;
 volatile UBYTE idling = 0x01;
+volatile UBYTE b_mode = 0x00;
 volatile UINT8 ccount = 0;
+volatile UINT8 LED_rate = 0;
 char message[MAX_LENGTH] = { 0 };
 
 
@@ -49,6 +51,7 @@ void setup_isr (void);
 void sio_isr (void);
 void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear);
 void idle_mode (void);
+void setup_b (void);
 
 
 void receive (void) {
@@ -128,23 +131,28 @@ void sio_isr (void) {
     receiving = 0x00;
   }
 
+  if (b_mode) {
+    SB = (UINT8)(LED_rate + 1);
+  }
+
   /* printing to screen (David J, modified by David H) */
-  if (!idling && !receiving) {
+  if (!idling && !receiving && !b_mode) {
     tile_print(message, CRS_START_X, CRS_START_Y, 1);
     idling = 0x01;
     ccount = 0;
   }
 }
 
-/* 
+/*
 prints out characters as font tiles on screen, (David J, modified by David H)
 
 param c: char array that should be converted to tiles and printed out
 param startx: starting x coordinate for printout
 param starty: starting y coordinate for printout
-param clear: specifies whether previous printouts should be cleared or not (true:false 1:0)
+param clear: specifies whether previous printouts should be cleared or not. Only works
+             when clearing the bubble dialogue. Set with 1 (true) or 0 (false)
 
-return: void 
+return: void
 */
 void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
   UINT8 ccount;
@@ -160,9 +168,6 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
       /* adjust position, end printout if exceeding bubble perimiter */
       if (pos_x == BUBBLE_RIGHT_EDGE) {
         pos_x = CRS_START_X;
-        if (pos_y == BUBBLE_BOTTOM_EDGE) {
-          break;
-        }
         pos_y++;
       } else {
         pos_x++;
@@ -181,6 +186,8 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
     /* adjust position */
     if (pos_x == BUBBLE_RIGHT_EDGE) {
       pos_x = CRS_START_X;
+      if (pos_y == BUBBLE_BOTTOM_EDGE)
+        break;
       pos_y++;
     } else {
       pos_x++;
@@ -189,30 +196,72 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
   }
 }
 
-void idle_mode (void) {
-  delay(500);
-  while (1) {
-    if (joypad()&J_A) {
-      waitpadup();
-      handshake_ok = 0x01;
-      break;
-    }
-  }
+void setup_b (void) {
+  tile_print("Press A to send: 1", CRS_START_X, CRS_START_Y, 1);
+  tile_print("1", 2, 3, 0);
+  tile_print("2", 2, 8, 0);
+  tile_print("4", 8, 3, 0);
+  tile_print("8", 8, 8, 0);
 }
 
 
 
 int main (void) {
   UINT8 i = 0;
+  UINT8 b_choice = 0x00;
+  UINT8 b_mode_x = 0x12;
+  char div[1] = { 0 };
+  UINT8 n = 1;
 
   setup_isr();
   setup_bkg();
+  tile_print("A: R/S", 12, 12, 0);
+  tile_print("B: Mode", 12, 13, 0);
 
   /* keep program waiting for interrupts */
   while (1) {
-    waitpad(J_A);
-    waitpadup();
-    handshake_ok = 0x01;
+    while (idling) {
+      if (joypad()&J_A) {
+        waitpadup();
+        handshake_ok = 0x01;
+      } else if (joypad()&J_B) {
+        idling = 0x00;
+        b_mode = 0x01;
+        *div = 0x00;
+        setup_b();
+      }
+    }
+
+    while (b_mode) {
+      if (joypad()&J_A) {
+        waitpadup();
+        LED_rate = (b_choice % 4);
+      }
+      if (joypad()&J_UP) {
+        waitpadup();
+        b_choice++;
+      }
+      if (joypad()&J_DOWN) {
+        waitpadup();
+        b_choice--;
+      }
+      
+      if (b_choice > 0) {
+        for (i = 0; i < (b_choice % 4); i++)
+          n = (n*2);
+      }
+      div[0] = (char)(n + 48);
+      tile_print(div,18,1,0);
+      n = 1;
+
+      if (joypad()&J_B) {
+        waitpadup();
+        b_mode = 0x00;
+        idling = 0x01;
+        b_choice = 0x01;
+        tile_print("Press A!", CRS_START_X, CRS_START_Y, 1);
+      }
+    }
 
     while (receiving) {;}
   }
