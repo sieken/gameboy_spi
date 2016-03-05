@@ -29,6 +29,7 @@
 #define ASCII_OFFSET 0x20
 #define TILE_STEP 0x01
 #define BUBBLE_RIGHT_EDGE 0x12
+#define BUBBLE_BOTTOM_EDGE 0x0A
 
 
 /* globals */
@@ -46,6 +47,7 @@ void debug_receive (void);
 void debug_send (void);
 void setup_isr (void);
 void sio_isr (void);
+void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear);
 void idle_mode (void);
 
 
@@ -101,9 +103,6 @@ void setup_bkg (void) {
 
 void sio_isr (void) {
   volatile UBYTE rcv = 0x00;
-  UINT8 pos_x;
-  UINT8 pos_y;
-  char ascii_temp[1] = { 0 };
   rcv = SB;
 
   /* idling & handshaking */
@@ -131,53 +130,62 @@ void sio_isr (void) {
 
   /* printing to screen (David J, modified by David H) */
   if (!idling && !receiving) {
-    pos_x = CRS_START_X;
-    pos_y = CRS_START_Y;
+    tile_print(message, CRS_START_X, CRS_START_Y, 1);
+    idling = 0x01;
+    ccount = 0;
+  }
+}
 
-    /* clear */
+/* 
+prints out characters as font tiles on screen, (David J, modified by David H)
+
+param c: char array that should be converted to tiles and printed out
+param startx: starting x coordinate for printout
+param starty: starting y coordinate for printout
+param clear: specifies whether previous printouts should be cleared or not (true:false 1:0)
+
+return: void 
+*/
+void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
+  UINT8 ccount;
+  UINT8 pos_x = CRS_START_X;
+  UINT8 pos_y = CRS_START_Y;
+  char ascii_temp[1] = { 0 };
+
+  /* clear previous printout */
+  if (clear) {
     for (ccount = 0; ccount < MAX_LENGTH; ccount++) {
       ascii_temp[0] = 0x00;
       set_bkg_tiles (pos_x, pos_y, 1, 1, ascii_temp);
-      /* adjust position */
+      /* adjust position, end printout if exceeding bubble perimiter */
       if (pos_x == BUBBLE_RIGHT_EDGE) {
         pos_x = CRS_START_X;
+        if (pos_y == BUBBLE_BOTTOM_EDGE) {
+          break;
+        }
         pos_y++;
       } else {
         pos_x++;
       }
     }
+  }
 
-    pos_x = CRS_START_X;
-    pos_y = CRS_START_Y;
-    for (ccount = 0; ccount < MAX_LENGTH; ccount++) {
-      if (message[ccount] == ETB) {
-        break;
-      }
-      ascii_temp[0] = (message[ccount] - ASCII_OFFSET);
-      set_bkg_tiles (pos_x, pos_y, 1, 1, ascii_temp);
-      /* adjust position */
-      if (pos_x == BUBBLE_RIGHT_EDGE) {
-        pos_x = CRS_START_X;
-        pos_y++;
-      } else {
-        pos_x++;
-      }
-      delay(50);
-    }//close for-loop
-
-    ascii_temp[0] = 0x00;
-    for (; ccount < MAX_LENGTH; ccount++) {
-      set_bkg_tiles (pos_x, pos_y, 1, 1, ascii_temp);
-      /* adjust position */
-      if (pos_x == BUBBLE_RIGHT_EDGE) {
-        pos_x = CRS_START_X;
-        pos_y++;
-      } else {
-        pos_x++;
-      }
-    }//close for-loop
-    idling = 0x01;
-    ccount = 0;
+  pos_x = startx;
+  pos_y = starty;
+  for (ccount = 0; ccount < MAX_LENGTH; ccount++) {
+    if (c[ccount] == ETB) {
+      break;
+    }
+    ascii_temp[0] = (c[ccount] - ASCII_OFFSET);
+    set_bkg_tiles (pos_x, pos_y, 1, 1, ascii_temp);
+    /* adjust position */
+    if (pos_x == BUBBLE_RIGHT_EDGE) {
+      pos_x = CRS_START_X;
+      pos_y++;
+    } else {
+      pos_x++;
+    }
+    delay(50);
   }
 }
 
