@@ -21,6 +21,7 @@
 #define ENQ 0x05
 #define ACK 0x06
 #define CAN 0x18
+#define RMODE 0x01
 #define MAX_LENGTH  144
 
 /* graphic defines */
@@ -34,11 +35,12 @@
 
 /* globals */
 volatile UBYTE handshake_ok = 0x00;
+volatile UBYTE switch_mode = 0x00;
 volatile UBYTE receiving = 0x00;
 volatile UBYTE idling = 0x01;
-volatile UBYTE b_mode = 0x00;
+volatile UBYTE sending = 0x00;
 volatile UINT8 ccount = 0;
-volatile UINT8 LED_rate = 0;
+volatile UINT8 LED_rate = 1;
 char message[MAX_LENGTH] = { 0 };
 
 
@@ -107,9 +109,19 @@ void setup_bkg (void) {
 void sio_isr (void) {
   volatile UBYTE rcv = 0x00;
   rcv = SB;
+  SB = 0x00;
 
   /* idling & handshaking */
-  if (idling) {
+  if (idling && switch_mode) {
+    if (rcv == RMODE) {
+      switch_mode = 0x00;
+      idling = 0x00;
+      sending = 0x01;
+    } else {
+      SB = CAN;
+    }
+  }
+  if (idling && !switch_mode) {
     if (rcv == ENQ && handshake_ok) {
       SB = ACK;
       receiving = 0x01;
@@ -131,12 +143,27 @@ void sio_isr (void) {
     receiving = 0x00;
   }
 
-  if (b_mode) {
-    SB = (UINT8)(LED_rate + 1);
+  if (sending && switch_mode) {
+    if (rcv == ENQ) {
+      switch_mode = 0x00;
+      sending = 0x00;
+      idling = 0x01;
+    } else {
+      SB = CAN;
+    }
   }
 
+  if (sending && !switch_mode) {
+    if (rcv == RMODE) {
+      SB = (UBYTE)(LED_rate);
+    } else {
+      SB = 0x00;
+    }
+  }
+
+
   /* printing to screen (David J, modified by David H) */
-  if (!idling && !receiving && !b_mode) {
+  if (!idling && !receiving && !sending) {
     tile_print(message, CRS_START_X, CRS_START_Y, 1);
     idling = 0x01;
     ccount = 0;
@@ -144,13 +171,13 @@ void sio_isr (void) {
 }
 
 /*
-prints out characters as font tiles on screen, (David J, modified by David H)
+   prints out characters as font tiles on screen, (David J, modified by David H)
 
-param c: char array that should be converted to tiles and printed out
-param startx: starting x coordinate for printout
-param starty: starting y coordinate for printout
-param clear: specifies whether previous printouts should be cleared or not. Only works
-             when clearing the bubble dialogue. Set with 1 (true) or 0 (false)
+   param c: char array that should be converted to tiles and printed out
+   param startx: starting x coordinate for printout
+   param starty: starting y coordinate for printout
+   param clear: specifies whether previous printouts should be cleared or not. Only works
+   when clearing the bubble dialogue. Set with 1 (true) or 0 (false)
 
 return: void
 */
@@ -209,7 +236,7 @@ void setup_b (void) {
 int main (void) {
   UINT8 i = 0;
   UINT8 b_choice = 0x00;
-  UINT8 b_mode_x = 0x12;
+  UINT8 sending_x = 0x12;
   char div[1] = { 0 };
   UINT8 n = 1;
 
@@ -220,46 +247,51 @@ int main (void) {
 
   /* keep program waiting for interrupts */
   while (1) {
-    while (idling) {
-      if (joypad()&J_A) {
-        waitpadup();
-        handshake_ok = 0x01;
-      } else if (joypad()&J_B) {
-        idling = 0x00;
-        b_mode = 0x01;
-        *div = 0x00;
-        setup_b();
+    while (sending) {
+      switch (joypad()) {
+        case J_A:
+          waitpadup();
+          LED_rate = (UINT8)((b_choice % 4) + 1);
+          break;
+        case J_UP:
+          waitpadup();
+          b_choice++;
+          break;
+        case J_DOWN:
+          waitpadup();
+          b_choice--;
+          break;
+        case J_B:
+          waitpadup();
+          switch_mode = 0x01;
+          b_choice = 0x00;
+          tile_print("Press A to refresh", CRS_START_X, CRS_START_Y, 1);
+          break;
+      }
+      if (!idling && !switch_mode) {
+        if (b_choice > 0) {
+          for (i = 0; i < (b_choice % 4); i++) 
+            n = (n*2);
+        } else {
+          n = 1;
+        }
+        div[0] = (char)(n + 48);
+        tile_print(div,18,1,0);
       }
     }
 
-    while (b_mode) {
-      if (joypad()&J_A) {
-        waitpadup();
-        LED_rate = (b_choice % 4);
-      }
-      if (joypad()&J_UP) {
-        waitpadup();
-        b_choice++;
-      }
-      if (joypad()&J_DOWN) {
-        waitpadup();
-        b_choice--;
-      }
-      
-      if (b_choice > 0) {
-        for (i = 0; i < (b_choice % 4); i++)
-          n = (n*2);
-      }
-      div[0] = (char)(n + 48);
-      tile_print(div,18,1,0);
-      n = 1;
-
-      if (joypad()&J_B) {
-        waitpadup();
-        b_mode = 0x00;
-        idling = 0x01;
-        b_choice = 0x01;
-        tile_print("Press A!", CRS_START_X, CRS_START_Y, 1);
+    while (idling) {
+      switch (joypad()) {
+        case J_A:
+          waitpadup();
+          handshake_ok = 0x01;
+          break;
+        case J_B:
+          waitpadup();
+          switch_mode = 0x01;
+          *div = 0x00;
+          setup_b();
+          break;
       }
     }
 
