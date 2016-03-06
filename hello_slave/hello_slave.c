@@ -224,11 +224,10 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
 }
 
 void setup_b (void) {
-  tile_print("Press A to send: 1", CRS_START_X, CRS_START_Y, 1);
+  tile_print("Press A to select", CRS_START_X, CRS_START_Y, 1);
+  tile_print("LED speed: ", CRS_START_X, (CRS_START_Y + 1), 0);
   tile_print("1", 2, 3, 0);
-  tile_print("2", 2, 8, 0);
-  tile_print("4", 8, 3, 0);
-  tile_print("8", 8, 8, 0);
+  tile_print("2", 2, 6, 0);
 }
 
 
@@ -252,7 +251,7 @@ int main (void) {
       switch (joypad()) {
         case J_A:
           waitpadup();
-          LED_rate = (UINT8)((b_choice % 4) + 1);
+          LED_rate = (UINT8)((b_choice % 2) + 1);
           break;
         case J_UP:
           waitpadup();
@@ -271,7 +270,7 @@ int main (void) {
       }
       if (!idling && !switch_mode) {
         if (b_choice > 0) {
-          for (i = 0; i < (b_choice % 4); i++) 
+          for (i = 0; i < (b_choice % 2); i++) 
             n = (n*2);
         }
         div[0] = (char)(n + 48);
