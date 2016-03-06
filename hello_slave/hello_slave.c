@@ -248,6 +248,7 @@ int main (void) {
   /* keep program waiting for interrupts */
   while (1) {
     while (sending) {
+      n = 1;
       switch (joypad()) {
         case J_A:
           waitpadup();
@@ -272,8 +273,6 @@ int main (void) {
         if (b_choice > 0) {
           for (i = 0; i < (b_choice % 4); i++) 
             n = (n*2);
-        } else {
-          n = 1;
         }
         div[0] = (char)(n + 48);
         tile_print(div,18,1,0);
