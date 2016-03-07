@@ -8,7 +8,10 @@
 #include <gb/gb.h>
 
 #include "bkg_layout.c"
-#include "tiles.c"
+#include "avatar.c"
+#include "beta_ascii.c"
+#include "chat_bubble.c"
+#include "pointer.c"
 
 /* interrupt flag, serial control and serial buffer registers */
 #define IEREG     *(volatile UBYTE *) 0xFFFF
@@ -41,7 +44,7 @@ char message[MAX_LENGTH] = { 0 };
 
 
 /* All functions in advance */
-void setup_bkg (void);
+void setup_bkg_and_sprite (void);
 void receive (void);
 void debug_receive (void);
 void debug_send (void);
@@ -89,15 +92,20 @@ void setup_isr (void) {
 }
 
 /* set up basic background (David J) */
-void setup_bkg (void) {
+void setup_bkg_and_sprite (void) {
   DISPLAY_OFF;
+  SPRITES_8x8;
   /* fill tile table */
   set_bkg_data(0, 95, beta_ascii);
-  set_bkg_data(95, 45, guy_n_bubble);
+  set_bkg_data(95, 64, avatar);
+  set_bkg_data(159, 11, chat_bubble)
+  set_sprite_data(0, 1, pointer);
 
   /* establish screen */
+  set_sprite_tile(0, 0);
   set_bkg_tiles(0, 0, 20, 18, tweetboy_bkg);
   SHOW_BKG;
+  SHOW_SPRITES;
   DISPLAY_ON;
 }
 
@@ -136,7 +144,7 @@ void sio_isr (void) {
   }
 }
 
-/* 
+/*
 prints out characters as font tiles on screen, (David J, modified by David H)
 
 param c: char array that should be converted to tiles and printed out
@@ -144,7 +152,7 @@ param startx: starting x coordinate for printout
 param starty: starting y coordinate for printout
 param clear: specifies whether previous printouts should be cleared or not (true:false 1:0)
 
-return: void 
+return: void
 */
 void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
   UINT8 ccount;
@@ -206,7 +214,7 @@ int main (void) {
   UINT8 i = 0;
 
   setup_isr();
-  setup_bkg();
+  setup_bkg_and_sprite();
 
   /* keep program waiting for interrupts */
   while (1) {
