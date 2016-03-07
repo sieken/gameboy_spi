@@ -1,12 +1,17 @@
 /* hello_slave.c
 
+   This file written by David H (Modified by David J).
    a hello world type program that receives a series of
    bytes via the Game Boy's link cable, and prints them out
-   on screen. */
+   on screen. Also allows a send mode, where information gets sent
+   via the link cable.
+   Operates mainly on interrupts, and requires specific 'handshake' codes to function properly */
 
+/* GBDK standard library */
 #include <stdio.h>
 #include <gb/gb.h>
 
+/* Tiles and sprites library */
 #include "bkg_layout.c"
 #include "avatar.c"
 #include "beta_ascii.c"
@@ -30,10 +35,14 @@
 /* graphic defines */
 #define CRS_START_X 0x01
 #define CRS_START_Y 0x01
-#define ASCII_OFFSET 0x20
+#define SPRITE_ACTIVE_Y 48
+#define SPRITE_ACTIVE_X 32
 #define TILE_STEP 0x01
+#define SPRITE_STEP 16
+#define ASCII_OFFSET 0x20
 #define BUBBLE_RIGHT_EDGE 0x12
 #define BUBBLE_BOTTOM_EDGE 0x0A
+
 
 
 /* globals */
@@ -48,15 +57,15 @@ char message[MAX_LENGTH] = { 0 };
 
 
 /* All functions in advance */
-void setup_bkg_and_sprite (void);
 void receive (void);
 void debug_receive (void);
 void debug_send (void);
 void setup_isr (void);
+void setup_bkg_and_sprite (void);
 void sio_isr (void);
 void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear);
-void idle_mode (void);
-void setup_b (void);
+void setup_b_mode (void);
+
 
 
 void receive (void) {
@@ -88,6 +97,7 @@ void debug_send (void) {
   }
 }
 
+/* Sets up the interrupts for serial IO */
 void setup_isr (void) {
   disable_interrupts();
   IFLAGS = (UBYTE)0x00;
@@ -119,7 +129,7 @@ void sio_isr (void) {
   rcv = SB;
   SB = 0x00;
 
-  /* idling & handshaking */
+  /* switching from idle to send mode */
   if (idling && switch_mode) {
     if (rcv == RMODE) {
       switch_mode = 0x00;
@@ -129,6 +139,8 @@ void sio_isr (void) {
       SB = CAN;
     }
   }
+
+  /* normal idling & handshaking */
   if (idling && !switch_mode) {
     if (rcv == ENQ && handshake_ok) {
       SB = ACK;
@@ -149,8 +161,10 @@ void sio_isr (void) {
       message[ccount] = (char)ETB;
     }
     receiving = 0x00;
+    ccount = 0x00;
   }
 
+  /* switch from send mode to idle mode */
   if (sending && switch_mode) {
     if (rcv == ENQ) {
       switch_mode = 0x00;
@@ -161,12 +175,10 @@ void sio_isr (void) {
     }
   }
 
+  /* normal send mode */
   if (sending && !switch_mode) {
-    if (rcv == RMODE) {
+    if (rcv == RMODE)
       SB = (UBYTE)(LED_rate);
-    } else {
-      SB = 0x00;
-    }
   }
 
 
@@ -174,7 +186,6 @@ void sio_isr (void) {
   if (!idling && !receiving && !sending) {
     tile_print(message, CRS_START_X, CRS_START_Y, 1);
     idling = 0x01;
-    ccount = 0;
   }
 }
 
@@ -187,7 +198,7 @@ void sio_isr (void) {
    param clear: specifies whether previous printouts should be cleared or not. Only works
    when clearing the bubble dialogue. Set with 1 (true) or 0 (false)
 
-return: void
+   return: void
 */
 void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
   UINT8 ccount;
@@ -210,6 +221,7 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
     }
   }
 
+  /* print out from parameter coordinates */
   pos_x = startx;
   pos_y = starty;
   for (ccount = 0; ccount < MAX_LENGTH; ccount++) {
@@ -231,21 +243,20 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
   }
 }
 
-void setup_b (void) {
+void setup_b_mode (void) {
   tile_print("Press A to select", CRS_START_X, CRS_START_Y, 1);
   tile_print("LED speed: ", CRS_START_X, (CRS_START_Y + 1), 0);
-  tile_print("1", 2, 3, 0);
-  tile_print("2", 2, 6, 0);
+  tile_print("1", 3, 4, 0);
+  tile_print("2", 3, 7, 0);
+  move_sprite(0, SPRITE_ACTIVE_X, SPRITE_ACTIVE_Y);
 }
 
 
 
 int main (void) {
   UINT8 i = 0;
-  UINT8 b_choice = 0x00;
   UINT8 sending_x = 0x12;
-  char div[1] = { 0 };
-  UINT8 n = 1;
+  UINT8 sprite_y = 0x00;
 
   setup_isr();
   setup_bkg_and_sprite();
@@ -255,34 +266,28 @@ int main (void) {
   /* keep program waiting for interrupts */
   while (1) {
     while (sending) {
-      n = 1;
       switch (joypad()) {
         case J_A:
           waitpadup();
-          LED_rate = (UINT8)((b_choice % 2) + 1);
+          LED_rate = (UINT8)((sprite_y - SPRITE_ACTIVE_Y) + 1);
           break;
         case J_UP:
           waitpadup();
-          b_choice++;
+          sprite_y = (SPRITE_ACTIVE_Y + ((sprite_y - SPRITE_ACTIVE_Y)^SPRITE_STEP));
+          move_sprite(0, SPRITE_ACTIVE_X, sprite_y);
           break;
         case J_DOWN:
           waitpadup();
-          b_choice--;
+          sprite_y = (SPRITE_ACTIVE_Y + ((sprite_y - SPRITE_ACTIVE_Y)^SPRITE_STEP));
+          move_sprite(0, SPRITE_ACTIVE_X, sprite_y);
           break;
         case J_B:
           waitpadup();
           switch_mode = 0x01;
-          b_choice = 0x00;
+          sprite_y = 0x00;
+          move_sprite(0,0,0);
           tile_print("Press A to refresh", CRS_START_X, CRS_START_Y, 1);
           break;
-      }
-      if (!idling && !switch_mode) {
-        if (b_choice > 0) {
-          for (i = 0; i < (b_choice % 2); i++) 
-            n = (n*2);
-        }
-        div[0] = (char)(n + 48);
-        tile_print(div,18,1,0);
       }
     }
 
@@ -295,8 +300,7 @@ int main (void) {
         case J_B:
           waitpadup();
           switch_mode = 0x01;
-          *div = 0x00;
-          setup_b();
+          setup_b_mode();
           break;
       }
     }
