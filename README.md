@@ -25,4 +25,4 @@ or whatever you wish to name your output .gb-image.
 ### TODO
 
 - [x] Links to sourceforge and github
-- [ ] Credit h4xxel and others
+- [ ] Credit h4xxel and others, Copyrights etc
