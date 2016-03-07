@@ -7,8 +7,8 @@
 #include <pic32mx.h>
 
 
-#define ID_SLEEP    10000000
-#define TR_SLEEP    2000000
+#define ID_SLEEP    1000000
+#define TR_SLEEP    25000
 
 #define EOT   0x04
 #define ENQ   0x05
@@ -19,7 +19,7 @@ volatile uint8_t clrBuf;
 volatile uint8_t idling = 0x01; // starts in idle state
 volatile uint8_t active = 0x00;
 
-char message[] = "Jag vill inte mer\nJag vill inte vara haer\nJag vill inte mer.";
+char message[] = "Hello, Game Boy!";
 uint8_t message_length = (sizeof(message)/sizeof(char));
 char idle_send = ENQ;
 
@@ -84,22 +84,24 @@ int main (void) {
   /* initialize SPI & LED5 */
   init();
   TRISF &= ~0x01;
-  PORTF = 0x00;
+  PORTF = 0x01;
 
   /* main routine */
   while (1) {
-    PORTF ^= 0x01;
+    PORTF = 0x00;
     while (idling) {
-      send_rcv(ENQ);
+      send_rcv(idle_send);
       sleep(ID_SLEEP);
     }
 
-    PORTF ^= 0x01;
     while (active) {
+      PORTF = 0x01;
       for (ccount = 0; ccount < message_length; ccount++) {
         send_rcv(message[ccount]);
         sleep(TR_SLEEP);
       }
+      active = 0x00;
+      idling = 0x01;
     }
   }
 
