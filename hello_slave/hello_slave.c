@@ -35,10 +35,10 @@
 /* graphic defines */
 #define CRS_START_X 0x01
 #define CRS_START_Y 0x01
-#define SPRITE_ACTIVE_Y 48
-#define SPRITE_ACTIVE_X 32
+#define POINTER_ACTIVE_Y 4
+#define POINTER_ACTIVE_X 2
 #define TILE_STEP 0x01
-#define SPRITE_STEP 16
+#define POINTER_STEP 3
 #define ASCII_OFFSET 0x20
 #define BUBBLE_RIGHT_EDGE 0x12
 #define BUBBLE_BOTTOM_EDGE 0x0A
@@ -65,6 +65,7 @@ void setup_bkg_and_sprite (void);
 void sio_isr (void);
 void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear);
 void setup_b_mode (void);
+UINT8 move_pointer (UINT8 point_y);
 
 
 
@@ -109,18 +110,16 @@ void setup_isr (void) {
 /* set up basic background (David J) */
 void setup_bkg_and_sprite (void) {
   DISPLAY_OFF;
-  SPRITES_8x8;
   /* fill tile table */
   set_bkg_data(0, 95, beta_ascii);
   set_bkg_data(95, 64, avatar);
   set_bkg_data(159, 11, chat_bubble);
-  set_sprite_data(0, 1, pointer);
+  set_bkg_data(171, 1, pointer);
 
   /* establish screen */
-  set_sprite_tile(0, 0);
   set_bkg_tiles(0, 0, 20, 18, bkg_layout);
   SHOW_BKG;
-  SHOW_SPRITES;
+  wait_vbl_done();
   DISPLAY_ON;
 }
 
@@ -248,10 +247,17 @@ void setup_b_mode (void) {
   tile_print("LED speed: ", CRS_START_X, (CRS_START_Y + 1), 0);
   tile_print("1", 3, 4, 0);
   tile_print("2", 3, 7, 0);
-  move_sprite(0, SPRITE_ACTIVE_X, SPRITE_ACTIVE_Y);
+  move_pointer(7);
 }
 
-
+UINT8 move_pointer (UINT8 point_y){
+  char clr_pointer[] = {0x00};
+  char pointer_temp[] = {171};
+  UINT8 next_y = ((point_y - (POINTER_ACTIVE_Y^POINTER_STEP)) + POINTER_ACTIVE_Y);
+  set_bkg_tiles(2, point_y, 1, 1, clr_pointer);
+  set_bkg_tiles(2, next_y, 1, 1, pointer_temp);
+  return next_y;
+}
 
 int main (void) {
   UINT8 i = 0;
@@ -269,17 +275,17 @@ int main (void) {
       switch (joypad()) {
         case J_A:
           waitpadup();
-          LED_rate = (UINT8)((sprite_y - SPRITE_ACTIVE_Y) + 1);
+          LED_rate = (UINT8)((sprite_y - POINTER_ACTIVE_Y) + 1);
           break;
         case J_UP:
           waitpadup();
-          sprite_y = (SPRITE_ACTIVE_Y + ((sprite_y - SPRITE_ACTIVE_Y)^SPRITE_STEP));
-          move_sprite(0, SPRITE_ACTIVE_X, sprite_y);
+          sprite_y = move_pointer(sprite_y);
+          tile_print("test", 5, 4, 0);
           break;
         case J_DOWN:
           waitpadup();
-          sprite_y = (SPRITE_ACTIVE_Y + ((sprite_y - SPRITE_ACTIVE_Y)^SPRITE_STEP));
-          move_sprite(0, SPRITE_ACTIVE_X, sprite_y);
+          sprite_y = move_pointer(sprite_y);
+          tile_print("test", 5, 7, 0);
           break;
         case J_B:
           waitpadup();
