@@ -103,12 +103,12 @@ void setup_bkg_and_sprite (void) {
   /* fill tile table */
   set_bkg_data(0, 95, beta_ascii);
   set_bkg_data(95, 64, avatar);
-  set_bkg_data(159, 11, chat_bubble)
+  set_bkg_data(159, 11, chat_bubble);
   set_sprite_data(0, 1, pointer);
 
   /* establish screen */
   set_sprite_tile(0, 0);
-  set_bkg_tiles(0, 0, 20, 18, tweetboy_bkg);
+  set_bkg_tiles(0, 0, 20, 18, bkg_layout);
   SHOW_BKG;
   SHOW_SPRITES;
   DISPLAY_ON;

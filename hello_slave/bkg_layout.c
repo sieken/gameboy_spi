@@ -42,7 +42,7 @@ SPRITE
 /* placement (in tiles) of bkg_data on screen
    18 rows of 20 tiles each, numbers representing tile number
    in bkg_data table */
-const unsigned char tweetboy_bkg[] = {
+const unsigned char bkg_layout[] = {
 159,160,160,160,160,160,160,160,160,160,160,160,160,160,160,160,160,160,160,161,  //ind 0-19
 166,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,162,  //ind 20-39
 166,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,162,  //ind 40-59
