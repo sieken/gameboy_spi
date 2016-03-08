@@ -78,7 +78,7 @@ void user_isr (void) {
 
   /* normal receiving, changes LED rate*/
   if (receiving && !switch_mode) {
-    if (clrBuf != 1 || clrBuf != 4) { // controls for illegal values
+    if (clrBuf != 1 && clrBuf != 4) { // controls for illegal values
       clrBuf = 1;
     }
     LED_rate = (LED_NORMAL/clrBuf);
