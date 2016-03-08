@@ -276,15 +276,23 @@ UINT8 move_pointer (UINT8 point_y){
   return next_y;
 }
 
+void easter_face (void) {
+  set_bkg_tiles(0, 10, 8, 8, easter_array);
+  tile_print("j2dx",1,13,0);
+  tile_print("sieken",1,14,0);
+}
+
 int main (void) {
   UINT8 i = 0;
   UINT8 sending_x = 0x12;
   UINT8 pointer_y = POINTER_ACTIVE_Y;
+  UINT8 select_counter = 0x00;
 
   setup_isr();
   setup_bkg_and_sprite();
   tile_print("Receive", 12, 12, 0);
   tile_print("Mode", 12, 15, 0);
+  tile_print("Press A to refresh", CRS_START_X, CRS_START_Y, 1);
 
   /* main routine */
   while (1) {
@@ -322,6 +330,13 @@ int main (void) {
           switch_mode = 0x01;
           setup_send_mode();
           break;
+        case J_SELECT:
+          waitpadup();
+          select_counter++;
+      }
+      if (select_counter == 3) {
+        easter_face();
+        select_counter = 0;
       }
     }
 
