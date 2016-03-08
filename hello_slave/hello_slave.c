@@ -176,8 +176,11 @@ void sio_isr (void) {
 
   /* normal send mode */
   if (sending && !switch_mode) {
-    if (rcv == RMODE)
+    if (rcv == RMODE) {
       SB = (UBYTE)(LED_rate);
+    } else if (rcv == ENQ) {
+      SB = CAN;
+    }
   }
 
 
@@ -245,8 +248,8 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
 void setup_b_mode (void) {
   tile_print("Press A to select", CRS_START_X, CRS_START_Y, 1);
   tile_print("LED speed: ", CRS_START_X, (CRS_START_Y + 1), 0);
-  tile_print("1", 3, 4, 0);
-  tile_print("2", 3, 7, 0);
+  tile_print(" LED SPEED 1", 3, 4, 0);
+  tile_print(" LED SPEED 2", 3, 7, 0);
   move_pointer(7);
 }
 
