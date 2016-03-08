@@ -253,7 +253,7 @@ void setup_b_mode (void) {
 UINT8 move_pointer (UINT8 point_y){
   char clr_pointer[] = {0x00};
   char pointer_temp[] = {171};
-  UINT8 next_y = ((point_y - (POINTER_ACTIVE_Y^POINTER_STEP)) + POINTER_ACTIVE_Y);
+  UINT8 next_y = (((point_y - POINTER_ACTIVE_Y)^POINTER_STEP) + POINTER_ACTIVE_Y);
   set_bkg_tiles(2, point_y, 1, 1, clr_pointer);
   set_bkg_tiles(2, next_y, 1, 1, pointer_temp);
   return next_y;
@@ -262,7 +262,7 @@ UINT8 move_pointer (UINT8 point_y){
 int main (void) {
   UINT8 i = 0;
   UINT8 sending_x = 0x12;
-  UINT8 sprite_y = 0x00;
+  UINT8 sprite_y = 0x04;
 
   setup_isr();
   setup_bkg_and_sprite();
@@ -280,12 +280,10 @@ int main (void) {
         case J_UP:
           waitpadup();
           sprite_y = move_pointer(sprite_y);
-          tile_print("test", 5, 4, 0);
           break;
         case J_DOWN:
           waitpadup();
           sprite_y = move_pointer(sprite_y);
-          tile_print("test", 5, 7, 0);
           break;
         case J_B:
           waitpadup();
