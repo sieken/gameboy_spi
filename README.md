@@ -21,8 +21,6 @@ In the hello\_slave directory, run;
 `$ lcc hello_slave.c -o hello_slave.gb`
 or whatever you wish to name your output .gb-image.
 
+## COPYRIGHTS
 
-### TODO
-
-- [x] Links to sourceforge and github
-- [ ] Credit h4xxel and others, Copyrights etc
+For copyrights etc, see file COPYING.
