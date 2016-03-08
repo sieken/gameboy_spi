@@ -116,6 +116,7 @@ void setup_bkg_and_sprite (void) {
   set_bkg_data(95, 64, avatar);
   set_bkg_data(159, 11, chat_bubble);
   set_bkg_data(171, 1, pointer);
+  set_bkg_data(172, 12, buttons)
 
   /* establish screen */
   set_bkg_tiles(0, 0, 20, 18, bkg_layout);
