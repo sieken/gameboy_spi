@@ -248,6 +248,7 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
 
 /* inititate LED speed control screen */
 void setup_send_mode (void) {
+  tile_print("Send", 14, 32, 0);
   tile_print("Press A to select", CRS_START_X, CRS_START_Y, 1);
   tile_print("LED speed: ", CRS_START_X, (CRS_START_Y + 1), 0);
   tile_print(" LED SPEED 1", 3, 4, 0);
@@ -273,8 +274,8 @@ int main (void) {
 
   setup_isr();
   setup_bkg_and_sprite();
-  tile_print("A: R/S", 12, 12, 0);
-  tile_print("B: Mode", 12, 13, 0);
+  tile_print("Receive", 14, 32, 0);
+  tile_print("Mode", 14, 16, 0);
 
   /* main routine */
   while (1) {
@@ -296,7 +297,7 @@ int main (void) {
           waitpadup();
           switch_mode = 0x01;
           pointer_y = POINTER_ACTIVE_Y;
-          move_sprite(0,0,0);
+          tile_print("Receive", 14, 32, 0);
           tile_print("Press A to refresh", CRS_START_X, CRS_START_Y, 1);
           break;
       }
