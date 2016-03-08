@@ -18,6 +18,7 @@
 #include "beta_ascii.c"
 #include "chat_bubble.c"
 #include "pointer.c"
+#include "buttons.c"
 
 /* interrupt flag, serial control and serial buffer registers */
 #define IEREG     *(volatile UBYTE *) 0xFFFF
@@ -66,6 +67,7 @@ void setup_bkg_and_sprite (void);
 void sio_isr (void);
 void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear);
 void setup_send_mode (void);
+void setup_idle_mode (void);
 UINT8 move_pointer (UINT8 point_y);
 
 
@@ -116,7 +118,7 @@ void setup_bkg_and_sprite (void) {
   set_bkg_data(95, 64, avatar);
   set_bkg_data(159, 11, chat_bubble);
   set_bkg_data(171, 1, pointer);
-  set_bkg_data(172, 12, buttons)
+  set_bkg_data(172, 12, buttons);
 
   /* establish screen */
   set_bkg_tiles(0, 0, 20, 18, bkg_layout);
@@ -249,12 +251,18 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
 
 /* inititate LED speed control screen */
 void setup_send_mode (void) {
-  tile_print("Send", 14, 32, 0);
+  tile_print("Send   ", 12, 12, 0);
   tile_print("Press A to select", CRS_START_X, CRS_START_Y, 1);
   tile_print("LED speed: ", CRS_START_X, (CRS_START_Y + 1), 0);
   tile_print(" LED SPEED 1", 3, 4, 0);
   tile_print(" LED SPEED 2", 3, 7, 0);
   move_pointer(7);
+}
+
+/* initiate idle screen */
+void setup_idle_mode (void) {
+  tile_print("Receive", 12, 12, 0);
+  tile_print("Press A to refresh", CRS_START_X, CRS_START_Y, 1);
 }
 
 /* adjusts position of on-screen pointer and returns new position (David J) */
@@ -275,8 +283,8 @@ int main (void) {
 
   setup_isr();
   setup_bkg_and_sprite();
-  tile_print("Receive", 14, 32, 0);
-  tile_print("Mode", 14, 16, 0);
+  tile_print("Receive", 12, 12, 0);
+  tile_print("Mode", 12, 15, 0);
 
   /* main routine */
   while (1) {
@@ -298,8 +306,7 @@ int main (void) {
           waitpadup();
           switch_mode = 0x01;
           pointer_y = POINTER_ACTIVE_Y;
-          tile_print("Receive", 14, 32, 0);
-          tile_print("Press A to refresh", CRS_START_X, CRS_START_Y, 1);
+          setup_idle_mode();
           break;
       }
     }
