@@ -178,7 +178,7 @@ void sio_isr (void) {
   /* normal send mode */
   if (sending && !switch_mode) {
     if (rcv == RMODE) {
-      SB = (UBYTE)(LED_rate);
+      SB = (UINT8)(LED_rate);
     } else if (rcv == ENQ) {  // forces Uno32 into receive-mode
       SB = CAN;
     }
@@ -269,7 +269,7 @@ UINT8 move_pointer (UINT8 point_y){
 int main (void) {
   UINT8 i = 0;
   UINT8 sending_x = 0x12;
-  UINT8 pointer_y = 0x04;
+  UINT8 pointer_y = POINTER_ACTIVE_Y;
 
   setup_isr();
   setup_bkg_and_sprite();
@@ -295,7 +295,7 @@ int main (void) {
         case J_B:
           waitpadup();
           switch_mode = 0x01;
-          pointer_y = 0x00;
+          pointer_y = POINTER_ACTIVE_Y;
           move_sprite(0,0,0);
           tile_print("Press A to refresh", CRS_START_X, CRS_START_Y, 1);
           break;
