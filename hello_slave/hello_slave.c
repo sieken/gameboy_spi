@@ -5,7 +5,8 @@
    bytes via the Game Boy's link cable, and prints them out
    on screen. Also allows a send mode, where information gets sent
    via the link cable.
-   Operates mainly on interrupts, and requires specific 'handshake' codes to function properly */
+   Operates mainly on interrupts, and requires specific 'handshake'
+   codes to function properly */
 
 /* GBDK standard library */
 #include <stdio.h>
@@ -64,7 +65,7 @@ void setup_isr (void);
 void setup_bkg_and_sprite (void);
 void sio_isr (void);
 void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear);
-void setup_b_mode (void);
+void setup_send_mode (void);
 UINT8 move_pointer (UINT8 point_y);
 
 
@@ -178,7 +179,7 @@ void sio_isr (void) {
   if (sending && !switch_mode) {
     if (rcv == RMODE) {
       SB = (UBYTE)(LED_rate);
-    } else if (rcv == ENQ) {
+    } else if (rcv == ENQ) {  // forces Uno32 into receive-mode
       SB = CAN;
     }
   }
@@ -245,7 +246,8 @@ void tile_print (char *c, UINT8 startx, UINT8 starty, UINT8 clear) {
   }
 }
 
-void setup_b_mode (void) {
+/* inititate LED speed control screen */
+void setup_send_mode (void) {
   tile_print("Press A to select", CRS_START_X, CRS_START_Y, 1);
   tile_print("LED speed: ", CRS_START_X, (CRS_START_Y + 1), 0);
   tile_print(" LED SPEED 1", 3, 4, 0);
@@ -253,9 +255,11 @@ void setup_b_mode (void) {
   move_pointer(7);
 }
 
+/* adjusts position of on-screen pointer and returns new position (David J) */
 UINT8 move_pointer (UINT8 point_y){
   char clr_pointer[] = {0x00};
   char pointer_temp[] = {171};
+  /* set new y-position based on current */
   UINT8 next_y = (((point_y - POINTER_ACTIVE_Y)^POINTER_STEP) + POINTER_ACTIVE_Y);
   set_bkg_tiles(2, point_y, 1, 1, clr_pointer);
   set_bkg_tiles(2, next_y, 1, 1, pointer_temp);
@@ -265,33 +269,33 @@ UINT8 move_pointer (UINT8 point_y){
 int main (void) {
   UINT8 i = 0;
   UINT8 sending_x = 0x12;
-  UINT8 sprite_y = 0x04;
+  UINT8 pointer_y = 0x04;
 
   setup_isr();
   setup_bkg_and_sprite();
   tile_print("A: R/S", 12, 12, 0);
   tile_print("B: Mode", 12, 13, 0);
 
-  /* keep program waiting for interrupts */
+  /* main routine */
   while (1) {
     while (sending) {
       switch (joypad()) {
         case J_A:
           waitpadup();
-          LED_rate = (UINT8)((sprite_y - POINTER_ACTIVE_Y) + 1);
+          LED_rate = (UINT8)((pointer_y - POINTER_ACTIVE_Y) + 1);
           break;
         case J_UP:
           waitpadup();
-          sprite_y = move_pointer(sprite_y);
+          pointer_y = move_pointer(pointer_y);
           break;
         case J_DOWN:
           waitpadup();
-          sprite_y = move_pointer(sprite_y);
+          pointer_y = move_pointer(pointer_y);
           break;
         case J_B:
           waitpadup();
           switch_mode = 0x01;
-          sprite_y = 0x00;
+          pointer_y = 0x00;
           move_sprite(0,0,0);
           tile_print("Press A to refresh", CRS_START_X, CRS_START_Y, 1);
           break;
@@ -307,7 +311,7 @@ int main (void) {
         case J_B:
           waitpadup();
           switch_mode = 0x01;
-          setup_b_mode();
+          setup_send_mode();
           break;
       }
     }
